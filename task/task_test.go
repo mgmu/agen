@@ -146,3 +146,25 @@ func TestNewTaskWithDoneStatusHasDoneStatus(t *testing.T) {
 		t.Fatalf("got \"%d\", want \"%d\"", ts.Status(), Done)
 	}
 }
+
+func TestNewDefaultTaskHasDefaultParametersAndGivenTitle(t *testing.T) {
+	ts, err := NewDefault("default")
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+	if !equal(ts.Title(), "default") {
+		t.Fatalf("got \"%s\", want \"%s\"", ts.Title(), "default")
+	}
+	if !equal(ts.Description(), "") {
+		t.Fatalf("got \"%s\", want \"%s\"", ts.Description(), "")
+	}
+	if ts.IsPeriodic() {
+		t.Fatalf("got \"%t\", want \"%t\"", ts.IsPeriodic(), false)
+	}
+	if ts.Priority() != Medium {
+		t.Fatalf("got \"%d\", want \"%d\"", ts.Priority(), Medium)
+	}
+	if ts.Status() != Todo {
+		t.Fatalf("got \"%d\", want \"%d\"", ts.Status(), Todo)
+	}
+}

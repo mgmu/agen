@@ -47,6 +47,15 @@ func NewTask(title, desc string, isPeriodic bool, priority, status byte) (*Task,
 	return &new, nil
 }
 
+func NewDefault(title string) (*Task, error) {
+	new := Task{
+		title: title,
+		priority: Medium,
+		status: Todo,
+	}
+	return &new, nil
+}
+
 // Returns the title of the task.
 func (t *Task) Title() string {
 	return t.title
