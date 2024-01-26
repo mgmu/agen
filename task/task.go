@@ -112,3 +112,7 @@ func checkTitleValidity(title string) error {
 	}
 	return nil
 }
+
+func (t *Task) SaveOnDisk() error {
+	return nil
+}
