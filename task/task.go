@@ -11,6 +11,15 @@ const (
 	Todo
 	Doing
 	Done
+	TitleMinLength = 1
+	TitleMaxLength = 255
+)
+
+var (
+	ErrTitleTooShort   = errors.New("title too short")
+	ErrTitleTooLong    = errors.New("title too long")
+	ErrInvalidPriority = errors.New("priority must be Low, Medium or High")
+	ErrInvalidStatus   = errors.New("status must be Todo, Doing or Done")
 )
 
 // A Task represents something to do before an arbitrary due date.
@@ -24,18 +33,14 @@ type Task struct {
 
 func NewTask(title, desc string, isPeriodic bool, priority, status byte) (*Task,
 	error) {
-	l := len(title)
-	if l < 1 {
-		return nil, errors.New("title too short")
-	}
-	if l > 256 {
-		return nil, errors.New("title too long")
+	if err := checkTitleValidity(title); err != nil {
+		return nil, err
 	}
 	if priority > 2 {
-		return nil, errors.New("priority must be Low, Medium or High")
+		return nil, ErrInvalidPriority
 	}
 	if status < 3 || status > 5 {
-		return nil, errors.New("status must be Todo, Doing or Done")
+		return nil, ErrInvalidStatus
 	}
 	new := Task{
 		title:      title,
@@ -48,10 +53,13 @@ func NewTask(title, desc string, isPeriodic bool, priority, status byte) (*Task,
 }
 
 func NewDefault(title string) (*Task, error) {
+	if err := checkTitleValidity(title); err != nil {
+		return nil, err
+	}
 	new := Task{
-		title: title,
+		title:    title,
 		priority: Medium,
-		status: Todo,
+		status:   Todo,
 	}
 	return &new, nil
 }
@@ -81,4 +89,26 @@ func (t *Task) Priority() int {
 // Doing or Done.
 func (t *Task) Status() int {
 	return int(t.status)
+}
+
+// Returns true if the given title is longer than the minimum title length
+func isTitleLongerThanMinLength(title string) bool {
+	return len(title) >= TitleMinLength
+}
+
+// Returns true if the given title is shorter than the maximum title length
+func isTitleShorterThanMaxLength(title string) bool {
+	return len(title) <= TitleMaxLength
+}
+
+// Returns nil if the title is valid, that is a string of
+// length >= TitleMinLength and <= TitleMaxLength, an error otherwise
+func checkTitleValidity(title string) error {
+	if !isTitleLongerThanMinLength(title) {
+		return ErrTitleTooShort
+	}
+	if !isTitleShorterThanMaxLength(title) {
+		return ErrTitleTooLong
+	}
+	return nil
 }

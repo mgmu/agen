@@ -168,3 +168,29 @@ func TestNewDefaultTaskHasDefaultParametersAndGivenTitle(t *testing.T) {
 		t.Fatalf("got \"%d\", want \"%d\"", ts.Status(), Todo)
 	}
 }
+
+func TestNewDefaultTaskWithNameInferiorTo1CharacterReturnsError(t *testing.T) {
+	_, err := NewDefault("")
+	if err == nil {
+		t.Fatalf("error expected")
+	}
+	exp := "title too short"
+	if !equal(exp, err.Error()) {
+		t.Fatalf("got \"%s\", want \"%s\"", err.Error(), exp)
+	}
+}
+
+func TestNewDefaultTaskWithTitleTooLongReturnsError(t *testing.T) {
+	longTitle := `tttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttt
+tttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttt
+tttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttt
+tttttttttttttttttttttttttttttttttt`
+	_, err := NewDefault(longTitle)
+	if err == nil {
+		t.Fatalf("expected error")
+	}
+	exp := "title too long"
+	if !equal(exp, err.Error()) {
+		t.Fatalf("got \"%s\", want \"%s\"", err.Error(), exp)
+	}
+}
