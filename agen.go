@@ -7,7 +7,7 @@ import (
 	"agen/task"
 )
 
-var logger = log.New(os.Stderr, "agen:", log.LstdFlags)
+var	logger = log.New(os.Stderr, "agen:", log.LstdFlags)
 
 // Prints the given message on the logger and exits the program with exit status
 // code 1
@@ -17,13 +17,14 @@ func logAndExit(msg string) {
 }
 
 // Checks that the directory `$HOME/.agen/tasks` exists. Exits with status code
-// 1 if it does not exist.
+// 1 if it does not exist. Also sets the tasks save path
 func checkTasksDirOrExit() {
 	homePath := os.Getenv("HOME")
 	if homePath == "" {
 		logAndExit("$HOME not set")
 	}
-	f, err := os.Open(homePath + "/.agen/tasks")
+	task.TasksPath = homePath + "/.agen/tasks"
+	f, err := os.Open(task.TasksPath)
 	if err != nil {
 		logAndExit(err.Error())
 	}
