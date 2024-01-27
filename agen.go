@@ -42,8 +42,22 @@ func main() {
 	checkTasksDirOrExit()
 
 	newTaskCmd := flag.NewFlagSet("newTask", flag.ExitOnError)
-	newTaskCmdTitle := newTaskCmd.String("title", "",
-		"the title of the task, of length > 0 and < 256")
+	newTaskCmdTitle := newTaskCmd.String("title", "", `The task title.
+Length must be strictly superior to 0 and strictly inferior to 256.`)
+	newTaskCmdDesc := newTaskCmd.String("desc", "", `The task description.
+Length must be strictly inferior to 65536.
+This is optionnal and defaults to the empty string.`)
+	newTaskCmdPeriod := newTaskCmd.Bool("periodic", false,
+		`Indicates if the task is periodic.
+This is optionnal and defaults to false.`)
+	newTaskCmdPriority := newTaskCmd.Int("prio", int(task.Medium),
+		`The task priority.
+0 for Low, 1 for Medium and 2 for High.
+This is optionnal and defaults to Medium.`)
+	newTaskCmdStatus := newTaskCmd.Int("status", int(task.Todo),
+		`The task status.
+3 for Todo, 4 for Doing and 5 for Done.
+This is optionnal and defaults to Todo.`)
 
 	_ = flag.NewFlagSet("list", flag.ExitOnError)
 
@@ -71,6 +85,16 @@ func main() {
 				ts.Title())
 			os.Exit(0)
 		}
+		if err = ts.SetDescription(*newTaskCmdDesc); err != nil {
+			logAndExit(err.Error())
+		}
+		ts.SetPeriodicity(*newTaskCmdPeriod)
+		if err = ts.SetPriority(byte(*newTaskCmdPriority)); err != nil {
+			logAndExit(err.Error())
+		}
+		if err = ts.SetStatus(byte(*newTaskCmdStatus)); err != nil {
+			logAndExit(err.Error())
+		}
 		if err = ts.SaveOnDisk(); err != nil {
 			logAndExit(err.Error())
 		}
@@ -79,11 +103,8 @@ func main() {
 		if err != nil {
 			logAndExit(err.Error())
 		}
-		if len(tasks) == 0 {
-			fmt.Println("Nothing to show")
-		}
-		for i, task := range tasks {
-			fmt.Printf("%d. %s\n", i+1, task.Display())
+		for _, task := range tasks {
+			fmt.Printf("> %s\n", task.Display())
 		}
 	default:
 		logAndExit("unknown subcommand: " + os.Args[1])

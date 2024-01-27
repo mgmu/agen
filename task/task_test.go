@@ -555,3 +555,102 @@ func TestListDisplayOfDefaultTaskShowsGoodTitleStatusAndPriority(t *testing.T) {
 		t.Fatalf("got \"%s\", want \"%s\"", display, exp)		
 	}
 }
+
+func TestSetDescriptionTooLongReturnsError(t *testing.T) {
+	ts, err := NewDefault("test")
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+	err = ts.SetDescription(strings.Repeat("a", 65536))
+	if err == nil {
+		t.Fatalf("expected error")
+	}
+	exp := "description too long (max 65535)"
+	if exp != err.Error() {
+		t.Fatalf("got \"%s\", want \"%s\"", err.Error(), exp)
+	}
+}
+
+func TestSetValidDescriptionReturnsNilErrorAndModifiesTask(t *testing.T) {
+	ts, err := NewDefault("test")
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+	newDesc := strings.Repeat("a", 65535)
+	err = ts.SetDescription(newDesc)
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+	if newDesc != ts.Description() {
+		t.Fatalf("got \"%s\", want \"%s\"", ts.Description(), newDesc)
+	}
+}
+
+func TestSetPeriodicityUpdatesTask(t *testing.T) {
+	ts, err := NewDefault("test")
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+	ts.SetPeriodicity(true)
+	if !ts.IsPeriodic() {
+		t.Fatalf("got %t, want %t", ts.IsPeriodic(), true)
+	}
+}
+
+func TestSetPriorityToInvalidPriorityReturnsError(t *testing.T) {
+	ts, err := NewDefault("test")
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+	err = ts.SetPriority(3)
+	if err == nil {
+		t.Fatalf("expected error")
+	}
+	exp := "priority must be Low, Medium or High"
+	if exp != err.Error() {
+		t.Fatalf("got \"%s\", want \"%s\"", err.Error(), exp)
+	}
+}
+
+func TestSetPriorityToHighUpdatesPriorityOfTask(t *testing.T) {
+	ts, err := NewDefault("test")
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+	err = ts.SetPriority(High)
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+	if ts.Priority() != High {
+		t.Fatalf("got %d, want %d", ts.Priority(), High)
+	}
+}
+
+func TestSetStatusToInvalidStatusReturnsError(t *testing.T) {
+	ts, err := NewDefault("test")
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+	err = ts.SetStatus(2)
+	if err == nil {
+		t.Fatalf("expected error")
+	}
+	exp := "status must be Todo, Doing or Done"
+	if exp != err.Error() {
+		t.Fatalf("got \"%s\", want \"%s\"", err.Error(), exp)
+	}
+}
+
+func TestSetStatusToDoneUpdatesStatusOfTask(t *testing.T) {
+	ts, err := NewDefault("test")
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+	err = ts.SetStatus(Done)
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+	if ts.Status() != Done {
+		t.Fatalf("got %d, want %d", ts.Status(), Done)
+	}
+}
