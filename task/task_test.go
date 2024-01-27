@@ -543,3 +543,15 @@ func TestSaveAtEmptyStringReturnsError(t *testing.T) {
 		t.Fatalf("got \"%s\", want \"%s\"", err.Error(), exp)
 	}
 }
+
+func TestListDisplayOfDefaultTaskShowsGoodTitleStatusAndPriority(t *testing.T) {
+	ts, err := NewDefault("test")
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+	display := ts.Display()
+	exp := "[To do] test <medium>"
+	if display != exp {
+		t.Fatalf("got \"%s\", want \"%s\"", display, exp)		
+	}
+}
