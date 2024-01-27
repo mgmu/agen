@@ -135,6 +135,9 @@ func removeFirstSlashIfPresent(s string) string {
 
 // Saves this task on disk
 func (t *Task) saveAt(path string) error {
+	if path == "" {
+		return ErrInvalidLoadPath
+	}
 	if path[len(path)-1] != '/' {
 		path = path + "/"
 	}

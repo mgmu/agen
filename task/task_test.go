@@ -528,3 +528,18 @@ func TestTaskExistenceOfNotExistentTaskReturnsFalse(t *testing.T) {
 		t.Fatalf("got %t, want %t", ok, false)
 	}
 }
+
+func TestSaveAtEmptyStringReturnsError(t *testing.T) {
+	ts, err := NewDefault("test")
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+	exp := "invalid load path"
+	err = ts.saveAt("")
+	if err == nil {
+		t.Fatalf("expected error")
+	}
+	if exp != err.Error() {
+		t.Fatalf("got \"%s\", want \"%s\"", err.Error(), exp)
+	}
+}
