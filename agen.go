@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"log"
 	"os"
 	"agen/task"
@@ -44,6 +45,8 @@ func main() {
 	newTaskCmdTitle := newTaskCmd.String("title", "",
 		"the title of the task, of length > 0 and < 256")
 
+	_ = flag.NewFlagSet("list", flag.ExitOnError)
+
 	if len(os.Args) < 2 {
 		logAndExit("expected subcommand")
 	}
@@ -55,12 +58,23 @@ func main() {
 			newTaskCmd.Usage()
 			os.Exit(1)
 		}
-		task, err := task.NewDefault(*newTaskCmdTitle)
+		ts, err := task.NewDefault(*newTaskCmdTitle)
 		if err != nil {
 			logAndExit(err.Error())
 		}
-		if err = task.SaveOnDisk(); err != nil {
+		if err = ts.SaveOnDisk(); err != nil {
 			logAndExit(err.Error())
+		}
+	case "list":
+		tasks, err := task.LoadTasks()
+		if err != nil {
+			logAndExit(err.Error())
+		}
+		if len(tasks) == 0 {
+			fmt.Println("Nothing to show")
+		}
+		for i, task := range tasks {
+			fmt.Printf("%d. %s\n", i+1, task.Title())
 		}
 	default:
 		logAndExit("expected subcommand")

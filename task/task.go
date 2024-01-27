@@ -26,6 +26,8 @@ var (
 	ErrInvalidPriority = errors.New("priority must be Low, Medium or High")
 	ErrInvalidStatus   = errors.New("status must be Todo, Doing or Done")
 	ErrDescTooLong     = errors.New("description too long (max 65535)")
+	ErrInvalidLoadPath = errors.New("invalid load path")
+	ErrInvalidTaskFileSize = errors.New("invalid task file size")
 )
 
 // A Task represents something to do before an arbitrary due date.
@@ -172,4 +174,92 @@ func (t *Task) SaveOnDisk() error {
 // Returns the length in bytes needed to store this task
 func (t *Task) Length() int {
 	return 1 + len(t.Title()) + 2 + len(t.Description()) + 3
+}
+
+// Loads into memory the task denoted by the given filepath and returns a
+// pointer to it.
+func loadTaskFrom(path string) (*Task, error) {
+	if path == "" {
+		return nil, ErrInvalidLoadPath
+	}
+	f, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+	info, err := f.Stat()
+	if err != nil {
+		return nil, err
+	}
+	if !info.Mode().IsRegular() {
+		return nil, ErrInvalidLoadPath
+	}
+	size := info.Size()
+	if size < 1 {
+		return nil, ErrInvalidTaskFileSize
+	}
+	data := make([]byte, size)
+	n, err := f.Read(data)
+	if err != nil {
+		return nil, err
+	}
+	data = data[:n]
+	if len(data) < 1 {
+		return nil, ErrInvalidTaskFileSize
+	}
+	titleLen := int(data[0])
+	if len(data) < 1 + titleLen {
+		return nil, ErrInvalidTaskFileSize
+	}
+	title := string(data[1:1+titleLen])
+	if len(data) < 1 + titleLen + 2 {
+		return nil, ErrInvalidTaskFileSize
+	}
+	descLen := uint16(data[1+titleLen]) << 8 + uint16(data[1+titleLen+1])
+	if len(data) < 1 + titleLen + 2 + int(descLen) {
+		return nil, ErrInvalidTaskFileSize
+	}
+	desc := string(data[1+titleLen+2: 1+titleLen+2+int(descLen)])
+	if len(data) < 1 + titleLen + 2 + int(descLen) + 3 {
+		return nil, ErrInvalidTaskFileSize
+	}
+	isPeriodic := (data[1+titleLen+2+int(descLen)] == 1)
+	priority := data[1+titleLen+2+int(descLen)+1]
+	status := data[1+titleLen+2+int(descLen)+2]
+	return NewTask(title, desc, isPeriodic, priority, status)
+}
+
+// Loads into a slice of Task pointers the tasks saved at the given path
+func loadTasksFrom(path string) ([]*Task, error) {
+	if path == "" {
+		return nil, ErrInvalidLoadPath
+	}
+	dir, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+	info, err := dir.Stat()
+	if err != nil {
+		return nil, err
+	}
+	if !info.IsDir() {
+		return nil, ErrInvalidLoadPath
+	}
+	entries, err := dir.ReadDir(0)
+	if err != nil {
+		return nil, err
+	}
+	var tasks []*Task
+	for _, entry := range entries {
+		ts, err := loadTaskFrom(filepath.Join(path, entry.Name()))
+		if err != nil {
+			return nil, err
+		}
+		tasks = append(tasks, ts)
+	}
+	return tasks, nil
+}
+
+// Loads into a slice of Task pointers the tasks saved on disk
+func LoadTasks() ([]*Task, error) {
+	return loadTasksFrom(TasksPath)
 }
