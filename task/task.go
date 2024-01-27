@@ -2,6 +2,8 @@ package task
 
 import (
 	"errors"
+	"path/filepath"
+	"os"
 )
 
 const (
@@ -13,19 +15,23 @@ const (
 	Done
 	TitleMinLength = 1
 	TitleMaxLength = 255
+	DescMaxLength  = 65535
 )
 
 var (
-	ErrTitleTooShort   = errors.New("title too short")
-	ErrTitleTooLong    = errors.New("title too long")
+	TasksPath = ""
+
+	ErrTitleTooShort   = errors.New("title too short (min 1)")
+	ErrTitleTooLong    = errors.New("title too long (max 255)")
 	ErrInvalidPriority = errors.New("priority must be Low, Medium or High")
 	ErrInvalidStatus   = errors.New("status must be Todo, Doing or Done")
+	ErrDescTooLong     = errors.New("description too long (max 65535)")
 )
 
 // A Task represents something to do before an arbitrary due date.
 type Task struct {
 	title      string // the title of the task (0 < length < 256)
-	desc       string // the description of the task
+	desc       string // the description of the task (0 <= length <= 65535)
 	isPeriodic bool   // indicates if the task is periodic
 	priority   byte   // the priority of the task: Low(0), Medium(1), High(2)
 	status     byte   // the status of the task: Todo(3), Doing(4), Done(5)
@@ -35,6 +41,9 @@ func NewTask(title, desc string, isPeriodic bool, priority, status byte) (*Task,
 	error) {
 	if err := checkTitleValidity(title); err != nil {
 		return nil, err
+	}
+	if len(desc) > DescMaxLength {
+		return nil, ErrDescTooLong
 	}
 	if priority > 2 {
 		return nil, ErrInvalidPriority
@@ -111,4 +120,56 @@ func checkTitleValidity(title string) error {
 		return ErrTitleTooLong
 	}
 	return nil
+}
+
+// Removes the first character of s if it is a slash '/'. If it is not, returns
+// s
+func removeFirstSlashIfPresent(s string) string {
+	if s != "" && s[0] == '/' {
+		return s[1:]
+	}
+	return s
+}
+
+// Saves this task on disk
+func (t *Task) saveAt(path string) error {
+	if path[len(path)-1] != '/' {
+		path = path + "/"
+	}
+	path = path + t.Title()
+	offset := 0
+	data := make([]byte, t.Length())
+	titleLen := len(t.Title())
+	data[offset] = byte(titleLen)
+	offset++
+	copy(data[offset:offset+titleLen], t.Title())
+	offset += titleLen
+	descLen := uint16(len(t.Description()))
+	data[offset] = byte(descLen >> 8)
+	offset++
+	data[offset] = byte(descLen)
+	offset++
+	copy(data[offset:offset+int(descLen)], t.Description())
+	offset += int(descLen)
+	if t.IsPeriodic() {
+		data[offset] = 1
+	} else {
+		data[offset] = 0
+	}
+	offset++
+	data[offset] = byte(t.Priority())
+	offset++
+	data[offset] = byte(t.Status())
+	return os.WriteFile(filepath.Clean(path), data, 0644)
+}
+
+// Saves on disk this task. TasksPath must be set before the call. Returns an
+// error if something wrong happened
+func (t *Task) SaveOnDisk() error {
+	return t.saveAt(TasksPath)
+}
+
+// Returns the length in bytes needed to store this task
+func (t *Task) Length() int {
+	return 1 + len(t.Title()) + 2 + len(t.Description()) + 3
 }
