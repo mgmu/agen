@@ -83,7 +83,7 @@ func main() {
 			fmt.Println("Nothing to show")
 		}
 		for i, task := range tasks {
-			fmt.Printf("%d. %s\n", i+1, task.Title())
+			fmt.Printf("%d. %s\n", i+1, task.Display())
 		}
 	default:
 		logAndExit("unknown subcommand: " + os.Args[1])

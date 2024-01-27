@@ -2,8 +2,9 @@ package task
 
 import (
 	"errors"
-	"path/filepath"
+	"fmt"
 	"os"
+	"path/filepath"
 )
 
 const (
@@ -21,12 +22,12 @@ const (
 var (
 	TasksPath = ""
 
-	ErrTitleTooShort   = errors.New("title too short (min 1)")
-	ErrTitleTooLong    = errors.New("title too long (max 255)")
-	ErrInvalidPriority = errors.New("priority must be Low, Medium or High")
-	ErrInvalidStatus   = errors.New("status must be Todo, Doing or Done")
-	ErrDescTooLong     = errors.New("description too long (max 65535)")
-	ErrInvalidLoadPath = errors.New("invalid load path")
+	ErrTitleTooShort       = errors.New("title too short (min 1)")
+	ErrTitleTooLong        = errors.New("title too long (max 255)")
+	ErrInvalidPriority     = errors.New("priority must be Low, Medium or High")
+	ErrInvalidStatus       = errors.New("status must be Todo, Doing or Done")
+	ErrDescTooLong         = errors.New("description too long (max 65535)")
+	ErrInvalidLoadPath     = errors.New("invalid load path")
 	ErrInvalidTaskFileSize = errors.New("invalid task file size")
 )
 
@@ -210,19 +211,19 @@ func loadTaskFrom(path string) (*Task, error) {
 		return nil, ErrInvalidTaskFileSize
 	}
 	titleLen := int(data[0])
-	if len(data) < 1 + titleLen {
+	if len(data) < 1+titleLen {
 		return nil, ErrInvalidTaskFileSize
 	}
-	title := string(data[1:1+titleLen])
-	if len(data) < 1 + titleLen + 2 {
+	title := string(data[1 : 1+titleLen])
+	if len(data) < 1+titleLen+2 {
 		return nil, ErrInvalidTaskFileSize
 	}
-	descLen := uint16(data[1+titleLen]) << 8 + uint16(data[1+titleLen+1])
-	if len(data) < 1 + titleLen + 2 + int(descLen) {
+	descLen := uint16(data[1+titleLen])<<8 + uint16(data[1+titleLen+1])
+	if len(data) < 1+titleLen+2+int(descLen) {
 		return nil, ErrInvalidTaskFileSize
 	}
-	desc := string(data[1+titleLen+2: 1+titleLen+2+int(descLen)])
-	if len(data) < 1 + titleLen + 2 + int(descLen) + 3 {
+	desc := string(data[1+titleLen+2 : 1+titleLen+2+int(descLen)])
+	if len(data) < 1+titleLen+2+int(descLen)+3 {
 		return nil, ErrInvalidTaskFileSize
 	}
 	isPeriodic := (data[1+titleLen+2+int(descLen)] == 1)
@@ -299,4 +300,28 @@ func existsAt(path, title string) (bool, error) {
 // Returns true if a task of given title already exists on disk
 func Exists(title string) (bool, error) {
 	return existsAt(TasksPath, title)
+}
+
+// Returns a string that displays the title, the status and the priority of this
+// task
+func (t *Task) Display() string {
+	prioDisp := ""
+	switch t.Priority() {
+	case Low:
+		prioDisp = "low"
+	case Medium:
+		prioDisp = "medium"
+	default:
+		prioDisp = "high"
+	}
+	statusDisp := ""
+	switch t.Status() {
+	case Todo:
+		statusDisp = "To do"
+	case Doing:
+		statusDisp = "Doing"
+	default:
+		statusDisp = "Done"
+	}
+	return fmt.Sprintf("[%s] %s <%s>", statusDisp, t.Title(), prioDisp)
 }
