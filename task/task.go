@@ -45,13 +45,13 @@ func NewTask(title, desc string, isPeriodic bool, priority, status byte) (*Task,
 	if err := checkTitleValidity(title); err != nil {
 		return nil, err
 	}
-	if len(desc) > DescMaxLength {
+	if !isValidDescription(desc) {
 		return nil, ErrDescTooLong
 	}
-	if priority > 2 {
+	if !isValidPriority(priority) {
 		return nil, ErrInvalidPriority
 	}
-	if status < 3 || status > 5 {
+	if !isValidStatus(status) {
 		return nil, ErrInvalidStatus
 	}
 	new := Task{
@@ -324,4 +324,53 @@ func (t *Task) Display() string {
 		statusDisp = "Done"
 	}
 	return fmt.Sprintf("[%s] %s <%s>", statusDisp, t.Title(), prioDisp)
+}
+
+// Sets the description of this task to the given description. If the
+// description is too long, an error is returned
+func (t *Task) SetDescription(newDesc string) error {
+	if len(newDesc) > DescMaxLength {
+		return ErrDescTooLong
+	}
+	t.desc = newDesc
+	return nil
+}
+
+// Sets the periodicity of this task
+func (t *Task) SetPeriodicity(newPeriod bool) {
+	t.isPeriodic = newPeriod
+}
+
+// Returns true if the given description is valid
+func isValidDescription(desc string) bool {
+	return len(desc) < 65536
+}
+
+// Returns true if the given priority is valid
+func isValidPriority(prio byte) bool {
+	return prio < 3
+}
+
+// Returns true if the given status is valid
+func isValidStatus(status byte) bool {
+	return status < 6 && status > 2
+}
+
+// Sets the new priority of this task. Returns an error if the priority is not
+// valid
+func (t *Task) SetPriority(newPrio byte) error {
+	if !isValidPriority(newPrio) {
+		return ErrInvalidPriority
+	}
+	t.priority = newPrio
+	return nil
+}
+
+// Sets the new status of this task. Returns an error if the status is not valid
+func (t *Task) SetStatus(newStatus byte) error {
+	if !isValidStatus(newStatus) {
+		return ErrInvalidStatus
+	}
+	t.status = newStatus
+	return nil
 }
