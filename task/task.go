@@ -263,3 +263,37 @@ func loadTasksFrom(path string) ([]*Task, error) {
 func LoadTasks() ([]*Task, error) {
 	return loadTasksFrom(TasksPath)
 }
+
+// Returns true if a task of given title already exists at the given directory
+// path.
+func existsAt(path, title string) (bool, error) {
+	if title == "" || path == "" {
+		return false, ErrInvalidLoadPath
+	}
+	dir, err := os.Open(path)
+	if err != nil {
+		return false, err
+	}
+	info, err := dir.Stat()
+	if err != nil {
+		return false, err
+	}
+	if !info.IsDir() {
+		return false, ErrInvalidLoadPath
+	}
+	entries, err := dir.ReadDir(0)
+	if err != nil {
+		return false, err
+	}
+	for _, entry := range entries {
+		if entry.Name() == title {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
+// Returns true if a task of given title already exists on disk
+func Exists(title string) (bool, error) {
+	return existsAt(TasksPath, title)
+}

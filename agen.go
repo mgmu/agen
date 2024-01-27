@@ -1,14 +1,14 @@
 package main
 
 import (
+	"agen/task"
 	"flag"
 	"fmt"
 	"log"
 	"os"
-	"agen/task"
 )
 
-var	logger = log.New(os.Stderr, "agen:", log.LstdFlags)
+var logger = log.New(os.Stderr, "agen:", log.LstdFlags)
 
 // Prints the given message on the logger and exits the program with exit status
 // code 1
@@ -62,6 +62,15 @@ func main() {
 		if err != nil {
 			logAndExit(err.Error())
 		}
+		exists, err := task.Exists(ts.Title())
+		if err != nil {
+			logAndExit(err.Error())
+		}
+		if exists {
+			fmt.Printf("Could not create task \"%s\": already exists\n",
+				ts.Title())
+			os.Exit(0)
+		}
 		if err = ts.SaveOnDisk(); err != nil {
 			logAndExit(err.Error())
 		}
@@ -77,6 +86,6 @@ func main() {
 			fmt.Printf("%d. %s\n", i+1, task.Title())
 		}
 	default:
-		logAndExit("expected subcommand")
+		logAndExit("unknown subcommand: " + os.Args[1])
 	}
 }
