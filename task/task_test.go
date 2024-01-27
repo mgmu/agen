@@ -70,7 +70,7 @@ func TestNewTaskWithLowPriorityHasLowPriority(t *testing.T) {
 		t.Fatalf(err.Error())
 	}
 	if ts.Priority() != Low {
-		t.Fatalf("got \"%d\", want \"%d\"", ts.Priority(), Low)
+		t.Fatalf("got %d, want %d", ts.Priority(), Low)
 	}
 }
 
@@ -80,7 +80,7 @@ func TestNewTaskWithMediumPriorityHasMediumPriority(t *testing.T) {
 		t.Fatalf(err.Error())
 	}
 	if ts.Priority() != Medium {
-		t.Fatalf("got \"%d\", want \"%d\"", ts.Priority(), Medium)
+		t.Fatalf("got %d, want %d", ts.Priority(), Medium)
 	}
 }
 
@@ -90,7 +90,7 @@ func TestNewTaskWithHighPriorityHasHighPriority(t *testing.T) {
 		t.Fatalf(err.Error())
 	}
 	if ts.Priority() != High {
-		t.Fatalf("got \"%d\", want \"%d\"", ts.Priority(), High)
+		t.Fatalf("got %d, want %d", ts.Priority(), High)
 	}
 }
 
@@ -122,7 +122,7 @@ func TestNewTaskWithTodoStatusHasTodoStatus(t *testing.T) {
 		t.Fatalf(err.Error())
 	}
 	if ts.Status() != Todo {
-		t.Fatalf("got \"%d\", want \"%d\"", ts.Status(), Todo)
+		t.Fatalf("got %d, want %d", ts.Status(), Todo)
 	}
 }
 
@@ -132,7 +132,7 @@ func TestNewTaskWithDoingStatusHasDoingStatus(t *testing.T) {
 		t.Fatalf(err.Error())
 	}
 	if ts.Status() != Doing {
-		t.Fatalf("got \"%d\", want \"%d\"", ts.Status(), Doing)
+		t.Fatalf("got %d, want %d", ts.Status(), Doing)
 	}
 }
 
@@ -142,7 +142,7 @@ func TestNewTaskWithDoneStatusHasDoneStatus(t *testing.T) {
 		t.Fatalf(err.Error())
 	}
 	if ts.Status() != Done {
-		t.Fatalf("got \"%d\", want \"%d\"", ts.Status(), Done)
+		t.Fatalf("got %d, want %d", ts.Status(), Done)
 	}
 }
 
@@ -161,10 +161,10 @@ func TestNewDefaultTaskHasDefaultParametersAndGivenTitle(t *testing.T) {
 		t.Fatalf("got \"%t\", want \"%t\"", ts.IsPeriodic(), false)
 	}
 	if ts.Priority() != Medium {
-		t.Fatalf("got \"%d\", want \"%d\"", ts.Priority(), Medium)
+		t.Fatalf("got %d, want %d", ts.Priority(), Medium)
 	}
 	if ts.Status() != Todo {
-		t.Fatalf("got \"%d\", want \"%d\"", ts.Status(), Todo)
+		t.Fatalf("got %d, want %d", ts.Status(), Todo)
 	}
 }
 
@@ -248,7 +248,7 @@ func TestLengthNewDefaultTask(t *testing.T) {
 	l := ts.Length()
 	rl := 1 + 4 + 2 + 0 + 1 + 1 + 1
 	if l != rl {
-		t.Fatalf("got \"%d\", want \"%d\"", l, rl)
+		t.Fatalf("got %d, want %d", l, rl)
 	}
 }
 
@@ -260,7 +260,7 @@ func TestLengthNewTask(t *testing.T) {
 	l := ts.Length()
 	rl := 1 + 4 + 2 + 19 + 1 + 1 + 1
 	if l != rl {
-		t.Fatalf("got \"%d\", want \"%d\"", l, rl)
+		t.Fatalf("got %d, want %d", l, rl)
 	}
 }
 
@@ -291,17 +291,17 @@ func TestSaveAtSavesTheTaskAtPathAndTheTaskContent(t *testing.T) {
 	}
 	isPeriodic := (data[int(descLen)+1+titleLen+2] == 1)
 	if task.IsPeriodic() != isPeriodic {
-		t.Fatalf("got isPeriodic \"%t\", want \"%t\"", isPeriodic,
+		t.Fatalf("got isPeriodic %t, want %t", isPeriodic,
 			task.IsPeriodic())
 	}
 	savedPriority := data[int(descLen)+1+titleLen+3]
 	if task.Priority() != int(savedPriority) {
-		t.Fatalf("got priority \"%d\", want \"%d\"", savedPriority,
+		t.Fatalf("got priority %d, want %d", savedPriority,
 			task.Priority())
 	}
 	savedStatus := data[int(descLen)+1+titleLen+4]
 	if task.Status() != int(savedStatus) {
-		t.Fatalf("got status \"%d\", want \"%d\"", savedStatus,	task.Status())
+		t.Fatalf("got status %d, want %d", savedStatus,	task.Status())
 	}
 }
 
@@ -316,7 +316,7 @@ func TestLoadFromEmtpyDirReturnsEmptySlice(t *testing.T) {
 		t.Fatalf(err.Error())
 	}
 	if len(tasks) != 0 {
-		t.Fatalf("got \"%v\", want empty slice", tasks)
+		t.Fatalf("got %v, want empty slice", tasks)
 	}
 }
 
@@ -345,7 +345,7 @@ func TestLoadFromDirWith2TasksReturnsSliceOfLength2(t *testing.T) {
 		t.Fatalf(err.Error())
 	}
 	if len(tasks) != 2 {
-		t.Fatalf("got slice of length \"%d\", want \"%d\"", len(tasks), 2)
+		t.Fatalf("got slice of length %d, want %d", len(tasks), 2)
 	}
 }
 
@@ -454,7 +454,7 @@ func TestLoadFromDirWith2TasksReturnsCorrespondingTasks(t *testing.T) {
 		t.Fatalf(err.Error())
 	}
 	if len(tasks) != 2 {
-		t.Fatalf("got slice of length \"%d\", want \"%d\"", len(tasks), 2)
+		t.Fatalf("got slice of length %d, want %d", len(tasks), 2)
 	}
 	if tasks[0].Title() != ts1.Title() ||
 		tasks[0].Description() != ts1.Description() ||
@@ -470,4 +470,61 @@ func TestLoadFromDirWith2TasksReturnsCorrespondingTasks(t *testing.T) {
 		tasks[1].Status() != ts2.Status() {
 		t.Fatalf("expected same task")
 	}	
+}
+
+func TestTaskExistenceWithEmptyTitleStringReturnsError(t *testing.T) {
+	_, err := existsAt("/tmp", "")
+	if err == nil {
+		t.Fatalf("expected error")
+	}
+	exp := "invalid load path"
+	if exp != err.Error() {
+		t.Fatalf("got \"%s\", want \"%s\"", err.Error(), exp)
+	}
+}
+
+func TestTaskExistenceWithEmptyPathStringReturnsError(t *testing.T) {
+	_, err := existsAt("", "hi")
+	if err == nil {
+		t.Fatalf("expected error")
+	}
+	exp := "invalid load path"
+	if exp != err.Error() {
+		t.Fatalf("got \"%s\", want \"%s\"", err.Error(), exp)
+	}
+}
+
+func TestTaskExistenceWithPathThatIsNotADirReturnsError(t *testing.T) {
+	dirname, err := os.MkdirTemp("", "test-agen")
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+	defer os.RemoveAll(dirname)
+	path := filepath.Join(dirname, "hi")
+	_, err = os.Create(path)
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+	_, err = existsAt(path, "hi")
+	if err == nil {
+		t.Fatalf("expected error")
+	}
+	exp := "invalid load path"
+	if exp != err.Error() {
+		t.Fatalf("got \"%s\", want \"%s\"", err.Error(), exp)
+	}
+}
+
+func TestTaskExistenceOfNotExistentTaskReturnsFalse(t *testing.T) {
+	dirname, err := os.MkdirTemp("", "tasks")
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+	ok, err := existsAt(dirname, "not-present")
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+	if ok {
+		t.Fatalf("got %t, want %t", ok, false)
+	}
 }
