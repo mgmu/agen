@@ -4,6 +4,7 @@ import (
 	"os"
 	"strings"
 	"testing"
+	"path/filepath"
 )
 
 // Returns true if s1 and s2 are exactly the same
@@ -302,4 +303,171 @@ func TestSaveAtSavesTheTaskAtPathAndTheTaskContent(t *testing.T) {
 	if task.Status() != int(savedStatus) {
 		t.Fatalf("got status \"%d\", want \"%d\"", savedStatus,	task.Status())
 	}
+}
+
+func TestLoadFromEmtpyDirReturnsEmptySlice(t *testing.T) {
+	dirname, err := os.MkdirTemp("", "tasks")
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+	defer os.RemoveAll(dirname)
+	tasks, err := loadTasksFrom(dirname)
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+	if len(tasks) != 0 {
+		t.Fatalf("got \"%v\", want empty slice", tasks)
+	}
+}
+
+func TestLoadFromDirWith2TasksReturnsSliceOfLength2(t *testing.T) {
+	dirname, err := os.MkdirTemp("", "tasks")
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+	defer os.RemoveAll(dirname)
+	ts1, err := NewDefault("test1")
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+	ts2, err := NewDefault("test2")
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+	if err = ts1.saveAt(dirname); err != nil {
+		t.Fatalf(err.Error())		
+	}
+	if err = ts2.saveAt(dirname); err != nil {
+		t.Fatalf(err.Error())		
+	}
+	tasks, err := loadTasksFrom(dirname)
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+	if len(tasks) != 2 {
+		t.Fatalf("got slice of length \"%d\", want \"%d\"", len(tasks), 2)
+	}
+}
+
+func TestLoadFromWithEmptyStringReturnsError(t *testing.T) {
+	_, err := loadTasksFrom("")
+	if err == nil {
+		t.Fatalf("expected error")
+	}
+	exp := "invalid load path"
+	if exp != err.Error() {
+		t.Fatalf("got \"%s\", want \"%s\"", err.Error(), exp)
+	}
+}
+
+func TestLoadTaskFromEmptyStringReturnsError(t *testing.T) {
+	_, err := loadTaskFrom("")
+	if err == nil {
+		t.Fatalf("expected error")
+	}
+	exp := "invalid load path"
+	if exp != err.Error() {
+		t.Fatalf("got \"%s\", want \"%s\"", err.Error(), exp)
+	}
+}
+
+func TestLoadTaskFromPathThatIssNotARegularFileReturnsError(t *testing.T) {
+	_, err := loadTaskFrom(".")
+	if err == nil {
+		t.Fatalf("expected error")
+	}
+	exp := "invalid load path"
+	if exp != err.Error() {
+		t.Fatalf("got \"%s\", want \"%s\"", err.Error(), exp)
+	}
+}
+
+func TestLoadTaskFromPathThatIsShortRegFileReturnsError(t *testing.T) {
+	dirname, err := os.MkdirTemp("", "tempTasks")
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+	defer os.RemoveAll(dirname)
+	_, err = os.Create(filepath.Join(dirname, "test"))
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+	_, err = loadTaskFrom(filepath.Join(dirname, "test"))
+	if err == nil {
+		t.Fatalf("expected error")
+	}
+	exp := "invalid task file size"
+	if exp != err.Error() {
+		t.Fatalf("got \"%s\", want \"%s\"", err.Error(), exp)
+	}
+}
+
+func TestLoadTaskFromPathThatIsTaskReturnsCorrespondingTask(t *testing.T) {
+	ts, err := NewTask("test", "its description", true, High, Done)
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+	dirname, err := os.MkdirTemp("", "tempTasks")
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+	defer os.RemoveAll(dirname)
+	if err = ts.saveAt(dirname); err != nil {
+		t.Fatalf(err.Error())
+	}
+	tsptr, err := loadTaskFrom(filepath.Join(dirname, ts.Title()))
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+	if tsptr == nil {
+		t.Fatalf("expected valid task pointer")
+	}
+	if tsptr.Title() != ts.Title() || tsptr.Description() != ts.Description() ||
+		tsptr.IsPeriodic() != ts.IsPeriodic() ||
+		tsptr.Priority() != ts.Priority() || tsptr.Status() != ts.Status() {
+		t.Fatalf("expected same task")
+	}
+}
+
+func TestLoadFromDirWith2TasksReturnsCorrespondingTasks(t *testing.T) {
+	dirname, err := os.MkdirTemp("", "tasks")
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+	defer os.RemoveAll(dirname)
+	ts1, err := NewDefault("test1")
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+	ts2, err := NewDefault("test2")
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+	if err = ts1.saveAt(dirname); err != nil {
+		t.Fatalf(err.Error())		
+	}
+	if err = ts2.saveAt(dirname); err != nil {
+		t.Fatalf(err.Error())		
+	}
+	tasks, err := loadTasksFrom(dirname)
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+	if len(tasks) != 2 {
+		t.Fatalf("got slice of length \"%d\", want \"%d\"", len(tasks), 2)
+	}
+	if tasks[0].Title() != ts1.Title() ||
+		tasks[0].Description() != ts1.Description() ||
+		tasks[0].IsPeriodic() != ts1.IsPeriodic() ||
+		tasks[0].Priority() != ts1.Priority() ||
+		tasks[0].Status() != ts1.Status() {
+		t.Fatalf("expected same task")
+	}	
+	if tasks[1].Title() != ts2.Title() ||
+		tasks[1].Description() != ts2.Description() ||
+		tasks[1].IsPeriodic() != ts2.IsPeriodic() ||
+		tasks[1].Priority() != ts2.Priority() ||
+		tasks[1].Status() != ts2.Status() {
+		t.Fatalf("expected same task")
+	}	
 }
