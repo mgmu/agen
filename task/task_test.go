@@ -695,3 +695,44 @@ func TestParseStatusWithDoneStringReturnsDone(t *testing.T) {
 		t.Fatalf("got %d, want %d", s, Done)
 	}
 }
+
+func TestParsePriorityFromEmptyStringReturnsError(t *testing.T) {
+	_, err := ParsePriority("")
+	if err == nil {
+		t.Fatalf("expected error")
+	}
+	exp := "not a valid priority string"
+	if err.Error() != exp {
+		t.Fatalf("got \"%s\", want \"%s\"", err.Error(), exp)
+	}
+}
+
+func TestParsePriorityWithLowStringReturnsLow(t *testing.T) {
+	s, err := ParsePriority("low")
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+	if s != Low {
+		t.Fatalf("got %d, want %d", s, Low)
+	}
+}
+
+func TestParsePriorityWithMediumStringReturnsMedium(t *testing.T) {
+	s, err := ParsePriority("medium")
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+	if s != Medium {
+		t.Fatalf("got %d, want %d", s, Medium)
+	}
+}
+
+func TestParsePriorityWithHighStringReturnsHigh(t *testing.T) {
+	s, err := ParsePriority("high")
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+	if s != High {
+		t.Fatalf("got %d, want %d", s, High)
+	}
+}

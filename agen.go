@@ -79,22 +79,29 @@ This is optionnal and defaults to Todo.`)
 			fmt.Printf("> %s\n", task.Display())
 		}
 	case "mark":
-		if len(os.Args) < 4 {
+		if len(os.Args) < 3 {
 			logAndExit("wrong use of mark subcommand, to update")
 		}
 		switch os.Args[2] {
 		case "todo", "doing", "done":
 			if len(os.Args[2:]) < 2 {
-				logAndExit("nothing given to mark")
+				os.Exit(0)
 			}
 			if err := handleStatusMark(os.Args[2], os.Args[3:]); err != nil {
 				logAndExit(err.Error())
 			}
 		case "low", "medium", "high":
-			logAndExit("todo priority")
+			if len(os.Args[2:]) < 2 {
+				os.Exit(0)
+			}
+			if err := handlePriorityMark(os.Args[2], os.Args[3:]); err != nil {
+				logAndExit(err.Error())
+			}
 		default:
 			logAndExit("unkown mark: " + os.Args[2])
 		}
+	case "remove":
+		
 	default:
 		logAndExit("unknown subcommand: " + os.Args[1])
 	}
@@ -152,6 +159,36 @@ func handleStatusMark(status string, args []string) error {
 			if err = ts.SaveOnDisk(); err != nil {
 				return err
 			}
+		}
+	}
+	return nil
+}
+
+// Handle for priority marking, the given priority must be either "low",
+// "medium" or "high", the string slice can be empty and contains the name of
+// the tasks to mark. Returns a non-nil error if the given task names were
+// marked.
+func handlePriorityMark(priority string, args []string) error {
+	prio, err := task.ParsePriority(priority)
+	if err != nil {
+		return err
+	}
+	for _, name := range args {
+		exists, err := task.Exists(name)
+		if err != nil {
+			return err
+		}
+		if exists {
+			ts, err := task.LoadTask(name)
+			if err != nil {
+				return err
+			}
+			if err = ts.SetPriority(prio); err != nil {
+				return err
+			}
+			if err = ts.SaveOnDisk(); err != nil {
+				return err
+			}			
 		}
 	}
 	return nil

@@ -395,3 +395,16 @@ func ParseStatus(status string) (byte, error) {
 func LoadTask(name string) (*Task, error) {
 	return loadTaskFrom(filepath.Join(TasksPath, name))
 }
+
+func ParsePriority(priority string) (byte, error) {
+	switch priority {
+	case "low":
+		return Low, nil
+	case "medium":
+		return Medium, nil
+	case "high":
+		return High, nil
+	default:
+		return 0, errors.New("not a valid priority string")
+	}	
+}
