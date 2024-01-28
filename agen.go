@@ -10,34 +10,6 @@ import (
 
 var logger = log.New(os.Stderr, "agen:", log.LstdFlags)
 
-// Prints the given message on the logger and exits the program with exit status
-// code 1
-func logAndExit(msg string) {
-	logger.Println(msg)
-	os.Exit(1)
-}
-
-// Checks that the directory `$HOME/.agen/tasks` exists. Exits with status code
-// 1 if it does not exist. Also sets the tasks save path
-func checkTasksDirOrExit() {
-	homePath := os.Getenv("HOME")
-	if homePath == "" {
-		logAndExit("$HOME not set")
-	}
-	task.TasksPath = homePath + "/.agen/tasks"
-	f, err := os.Open(task.TasksPath)
-	if err != nil {
-		logAndExit(err.Error())
-	}
-	fi, err := f.Stat()
-	if err != nil {
-		logAndExit(err.Error())
-	}
-	if !fi.IsDir() {
-		logAndExit("tasks directory missing")
-	}
-}
-
 func main() {
 	checkTasksDirOrExit()
 
@@ -106,7 +78,81 @@ This is optionnal and defaults to Todo.`)
 		for _, task := range tasks {
 			fmt.Printf("> %s\n", task.Display())
 		}
+	case "mark":
+		if len(os.Args) < 4 {
+			logAndExit("wrong use of mark subcommand, to update")
+		}
+		switch os.Args[2] {
+		case "todo", "doing", "done":
+			if len(os.Args[2:]) < 2 {
+				logAndExit("nothing given to mark")
+			}
+			if err := handleStatusMark(os.Args[2], os.Args[3:]); err != nil {
+				logAndExit(err.Error())
+			}
+		case "low", "medium", "high":
+			logAndExit("todo priority")
+		default:
+			logAndExit("unkown mark: " + os.Args[2])
+		}
 	default:
 		logAndExit("unknown subcommand: " + os.Args[1])
 	}
+}
+
+// Prints the given message on the logger and exits the program with exit status
+// code 1
+func logAndExit(msg string) {
+	logger.Println(msg)
+	os.Exit(1)
+}
+
+// Checks that the directory `$HOME/.agen/tasks` exists. Exits with status code
+// 1 if it does not exist. Also sets the tasks save path
+func checkTasksDirOrExit() {
+	homePath := os.Getenv("HOME")
+	if homePath == "" {
+		logAndExit("$HOME not set")
+	}
+	task.TasksPath = homePath + "/.agen/tasks"
+	f, err := os.Open(task.TasksPath)
+	if err != nil {
+		logAndExit(err.Error())
+	}
+	fi, err := f.Stat()
+	if err != nil {
+		logAndExit(err.Error())
+	}
+	if !fi.IsDir() {
+		logAndExit("tasks directory missing")
+	}
+}
+
+// Handle for status marking, the given status must be either "todo", "doing" or
+// "done", the string slice can be empty and contains the name of the tasks to
+// mark. Returns a non-nil error if the given task names were marked.
+func handleStatusMark(status string, args []string) error {
+	stat, err := task.ParseStatus(status)
+	if err != nil {
+		return err
+	}
+	for _, name := range args {
+		exists, err := task.Exists(name)
+		if err != nil {
+			return err
+		}
+		if exists {
+			ts, err := task.LoadTask(name)
+			if err != nil {
+				return err
+			}
+			if err = ts.SetStatus(stat); err != nil {
+				return err
+			}
+			if err = ts.SaveOnDisk(); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
 }

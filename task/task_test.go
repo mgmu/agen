@@ -654,3 +654,44 @@ func TestSetStatusToDoneUpdatesStatusOfTask(t *testing.T) {
 		t.Fatalf("got %d, want %d", ts.Status(), Done)
 	}
 }
+
+func TestParseStatusFromEmptyStringReturnsError(t *testing.T) {
+	_, err := ParseStatus("")
+	if err == nil {
+		t.Fatalf("expected error")
+	}
+	exp := "not a valid status string"
+	if err.Error() != exp {
+		t.Fatalf("got \"%s\", want \"%s\"", err.Error(), exp)
+	}
+}
+
+func TestParseStatusWithTodoStringReturnsTodo(t *testing.T) {
+	s, err := ParseStatus("todo")
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+	if s != Todo {
+		t.Fatalf("got %d, want %d", s, Todo)
+	}
+}
+
+func TestParseStatusWithDoingStringReturnsDoing(t *testing.T) {
+	s, err := ParseStatus("doing")
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+	if s != Doing {
+		t.Fatalf("got %d, want %d", s, Doing)
+	}
+}
+
+func TestParseStatusWithDoneStringReturnsDone(t *testing.T) {
+	s, err := ParseStatus("done")
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+	if s != Done {
+		t.Fatalf("got %d, want %d", s, Done)
+	}
+}
