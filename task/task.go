@@ -395,3 +395,35 @@ func ParseStatus(status string) (byte, error) {
 func LoadTask(name string) (*Task, error) {
 	return loadTaskFrom(filepath.Join(TasksPath, name))
 }
+
+// Parses the priority denoted by the given string. If priority is different
+// than "low", "medium" or "high", returns an error
+func ParsePriority(priority string) (byte, error) {
+	switch priority {
+	case "low":
+		return Low, nil
+	case "medium":
+		return Medium, nil
+	case "high":
+		return High, nil
+	default:
+		return 0, errors.New("not a valid priority string")
+	}	
+}
+
+// Removes the file of given name at the given path
+func removeAt(path, name string) error {
+	exists, err := Exists(name)
+	if err != nil {
+		return err
+	}
+	if exists {
+		return os.Remove(filepath.Join(path, name))
+	}
+	return nil
+}
+
+// Removes the task of given name
+func Remove(name string) error {
+	return removeAt(TasksPath, name)
+}
