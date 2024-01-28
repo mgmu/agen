@@ -374,3 +374,24 @@ func (t *Task) SetStatus(newStatus byte) error {
 	t.status = newStatus
 	return nil
 }
+
+// Parses the status denoted by the given string. If status is different than
+// "todo", "doing" or "done", returns an error
+func ParseStatus(status string) (byte, error) {
+	switch status {
+	case "todo":
+		return Todo, nil
+	case "doing":
+		return Doing, nil
+	case "done":
+		return Done, nil
+	default:
+		return 0, errors.New("not a valid status string")
+	}
+}
+
+// Loads the task of given name. If the task does not exist or something happens
+// during the load, returns an error
+func LoadTask(name string) (*Task, error) {
+	return loadTaskFrom(filepath.Join(TasksPath, name))
+}
