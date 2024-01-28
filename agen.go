@@ -101,7 +101,12 @@ This is optionnal and defaults to Todo.`)
 			logAndExit("unkown mark: " + os.Args[2])
 		}
 	case "remove":
-		
+		if len(os.Args) < 3 {
+			os.Exit(0)
+		}
+		if err := handleRemove(os.Args[2:]); err != nil {
+			logAndExit(err.Error())
+		}
 	default:
 		logAndExit("unknown subcommand: " + os.Args[1])
 	}
@@ -189,6 +194,17 @@ func handlePriorityMark(priority string, args []string) error {
 			if err = ts.SaveOnDisk(); err != nil {
 				return err
 			}			
+		}
+	}
+	return nil
+}
+
+// Removes the tasks denotes by the given names. If something wrong happens,
+// returns an error. The args slice can be empty
+func handleRemove(args []string) error {
+	for _, name := range args {
+		if err := task.Remove(name); err != nil { // todo
+			return err
 		}
 	}
 	return nil
