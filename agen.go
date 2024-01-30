@@ -22,13 +22,13 @@ This is optionnal and defaults to the empty string.`)
 	newTaskCmdPeriod := newTaskCmd.Bool("periodic", false,
 		`Indicates if the task is periodic.
 This is optionnal and defaults to false.`)
-	newTaskCmdPriority := newTaskCmd.Int("prio", int(task.Medium),
+	newTaskCmdPriority := newTaskCmd.String("prio", "medium",
 		`The task priority.
-0 for Low, 1 for Medium and 2 for High.
+"low" for Low, "medium" for Medium and "high" for High.
 This is optionnal and defaults to Medium.`)
-	newTaskCmdStatus := newTaskCmd.Int("status", int(task.Todo),
+	newTaskCmdStatus := newTaskCmd.String("status", "todo",
 		`The task status.
-3 for Todo, 4 for Doing and 5 for Done.
+"todo" for Todo, "doing" for Doing and "done" for Done.
 This is optionnal and defaults to Todo.`)
 
 	_ = flag.NewFlagSet("list", flag.ExitOnError)
@@ -61,10 +61,18 @@ This is optionnal and defaults to Todo.`)
 			logAndExit(err.Error())
 		}
 		ts.SetPeriodicity(*newTaskCmdPeriod)
-		if err = ts.SetPriority(byte(*newTaskCmdPriority)); err != nil {
+		prio, err := task.ParsePriority(*newTaskCmdPriority)
+		if err != nil {
 			logAndExit(err.Error())
 		}
-		if err = ts.SetStatus(byte(*newTaskCmdStatus)); err != nil {
+		if err = ts.SetPriority(prio); err != nil {
+			logAndExit(err.Error())
+		}
+		status, err := task.ParseStatus(*newTaskCmdStatus)
+		if err != nil {
+			logAndExit(err.Error())
+		}
+		if err = ts.SetStatus(status); err != nil {
 			logAndExit(err.Error())
 		}
 		if err = ts.SaveOnDisk(); err != nil {
