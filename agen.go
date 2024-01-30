@@ -88,7 +88,7 @@ This is optionnal and defaults to Todo.`)
 		}
 	case "mark":
 		if len(os.Args) < 3 {
-			logAndExit("wrong use of mark subcommand, to update")
+			logAndExit("no specific mark given")
 		}
 		switch os.Args[2] {
 		case "todo", "doing", "done":
@@ -106,7 +106,9 @@ This is optionnal and defaults to Todo.`)
 				logAndExit(err.Error())
 			}
 		default:
-			logAndExit("unkown mark: " + os.Args[2])
+			logger.Println("unkown mark: " + os.Args[2])
+			fmt.Println(markSubcommandUsage())
+			os.Exit(1)
 		}
 	case "remove":
 		if len(os.Args) < 3 {
@@ -216,4 +218,18 @@ func handleRemove(args []string) error {
 		}
 	}
 	return nil
+}
+
+func markSubcommandUsage() string {
+	return `Usage of mark:
+  agen mark arg [t0 t1 ...]
+where arg is one of the following:
+  low:    sets the priority of the given tasks to Low
+  medium: sets the priority of the given tasks to Medium
+  high:   sets the priority of the given tasks to High
+
+  todo:   sets the status of the given tasks to Todo
+  doing:  sets the status of the given tasks to Doing
+  done:   sets the status of the given tasks to Done
+and t0 t1 ... denotes the optionnal list of tasks to mark with the given value`
 }
