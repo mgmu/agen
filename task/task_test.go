@@ -5,6 +5,7 @@ import (
 	"strings"
 	"testing"
 	"path/filepath"
+	"slices"
 )
 
 // Returns true if s1 and s2 are exactly the same
@@ -18,7 +19,7 @@ func TestTaskWithTitleTooShortReturnsError(t *testing.T) {
 		t.Fatalf("expected error")
 	}
 	exp := "title too short (min 1)"
-	if !equal(exp, err.Error()) {
+	if exp != err.Error() {
 		t.Fatalf("got \"%s\", want \"%s\"", err.Error(), exp)
 	}
 }
@@ -30,7 +31,7 @@ func TestTaskWithTitleTooLongReturnsError(t *testing.T) {
 		t.Fatalf("expected error")
 	}
 	exp := "title too long (max 255)"
-	if !equal(exp, err.Error()) {
+	if exp != err.Error() {
 		t.Fatalf("got \"%s\", want \"%s\"", err.Error(), exp)
 	}
 }
@@ -47,7 +48,7 @@ func TestNewTaskHasGivenDescription(t *testing.T) {
 	if err != nil {
 		t.Fatalf(err.Error())
 	}
-	if !equal(ts.Description(), "some description") {
+	if ts.Description() != "some description" {
 		t.Fatalf("got \"%s\", want \"%s\"", ts.Description(),
 			"some description")
 	}
@@ -59,7 +60,7 @@ func TestInvalidPriorityForNewTaskReturnsError(t *testing.T) {
 		t.Fatalf("expected error")
 	}
 	exp := "priority must be Low, Medium or High"
-	if !equal(exp, err.Error()) {
+	if exp != err.Error() {
 		t.Fatalf("got \"%s\", want \"%s\"", err.Error(), exp)
 	}
 }
@@ -100,7 +101,7 @@ func TestNewTaskWithStatus6ReturnsError(t *testing.T) {
 		t.Fatalf("expected error")
 	}
 	exp := "status must be Todo, Doing or Done"
-	if !equal(exp, err.Error()) {
+	if exp != err.Error() {
 		t.Fatalf("got \"%s\", want \"%s\"", err.Error(), exp)
 	}
 }
@@ -111,7 +112,7 @@ func TestNewTaskWithStatus2ReturnsError(t *testing.T) {
 		t.Fatalf("expected error")
 	}
 	exp := "status must be Todo, Doing or Done"
-	if !equal(exp, err.Error()) {
+	if exp != err.Error() {
 		t.Fatalf("got \"%s\", want \"%s\"", err.Error(), exp)
 	}
 }
@@ -151,10 +152,10 @@ func TestNewDefaultTaskHasDefaultParametersAndGivenTitle(t *testing.T) {
 	if err != nil {
 		t.Fatalf(err.Error())
 	}
-	if !equal(ts.Title(), "default") {
+	if ts.Title() != "default" {
 		t.Fatalf("got \"%s\", want \"%s\"", ts.Title(), "default")
 	}
-	if !equal(ts.Description(), "") {
+	if ts.Description() != "" {
 		t.Fatalf("got \"%s\", want \"%s\"", ts.Description(), "")
 	}
 	if ts.IsPeriodic() {
@@ -174,7 +175,7 @@ func TestNewDefaultTaskWithNameInferiorTo1CharacterReturnsError(t *testing.T) {
 		t.Fatalf("error expected")
 	}
 	exp := "title too short (min 1)"
-	if !equal(exp, err.Error()) {
+	if exp != err.Error() {
 		t.Fatalf("got \"%s\", want \"%s\"", err.Error(), exp)
 	}
 }
@@ -186,7 +187,7 @@ func TestNewDefaultTaskWithTitleTooLongReturnsError(t *testing.T) {
 		t.Fatalf("expected error")
 	}
 	exp := "title too long (max 255)"
-	if !equal(exp, err.Error()) {
+	if exp != err.Error() {
 		t.Fatalf("got \"%s\", want \"%s\"", err.Error(), exp)
 	}
 }
@@ -734,5 +735,73 @@ func TestParsePriorityWithHighStringReturnsHigh(t *testing.T) {
 	}
 	if s != High {
 		t.Fatalf("got %d, want %d", s, High)
+	}
+}
+
+func TestParseEmptyStatusStringsReturnsEmptySlice(t *testing.T) {
+	stats := make([]string, 4)
+	s, err := ParseStatusFrom(stats)
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+	if len(s) != 0 {
+		t.Fatalf("got length %d, want %d", len(s), 0)
+	}
+}
+
+func TestIsValidStatusWithEmptyStringReturnsFalse(t *testing.T) {
+	if IsValidStatus("") {
+		t.Fatalf("got true, expected false")
+	}
+}
+
+func TestIsValidStatusWithInvalidStatusReturnsFalse(t *testing.T) {
+	if IsValidStatus("not a valid status") {
+		t.Fatalf("got true, expected false")
+	}
+}
+
+func TestParseStatusFrom(t *testing.T) {
+	strs := make([]string, 5)
+	strs[0] = "hi"
+	strs[1] = "not a valid status"
+	strs[2] = "done"
+	strs[3] = "d0ne"
+	strs[4] = "todo"
+	stats, err := ParseStatusFrom(strs)
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+	if len(stats) != 2 {
+		t.Fatalf("got length %d, want %d", len(stats), 2)
+	}
+	want := make([]byte, 2)
+	want[0] = Done
+	want[1] = Todo
+	if !slices.Equal(want, stats) {
+		t.Fatalf("got %v, want %v", stats, want)
+	}
+}
+
+func TestParsePriorityFrom(t *testing.T) {
+	strs := make([]string, 5)
+	strs[0] = "high"
+	strs[1] = "done"
+	strs[2] = "not a valid prio"
+	strs[3] = "low"
+	strs[4] = "medium"
+	prios, err := ParsePriorityFrom(strs)
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+	if len(prios) != 3 {
+		t.Fatalf("got length %d, want %d", len(prios), 3)
+	}
+	want := make([]byte, 3)
+	want[0] = High
+	want[1] = Low
+	want[2] = Medium
+	if !slices.Equal(want, prios) {
+		t.Fatalf("got %v, want %v", prios, want)
 	}
 }

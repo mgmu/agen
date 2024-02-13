@@ -31,8 +31,6 @@ This is optionnal and defaults to Medium.`)
 "todo" for Todo, "doing" for Doing and "done" for Done.
 This is optionnal and defaults to Todo.`)
 
-	_ = flag.NewFlagSet("list", flag.ExitOnError)
-
 	if len(os.Args) < 2 {
 		logAndExit("expected subcommand")
 	}
@@ -79,7 +77,17 @@ This is optionnal and defaults to Todo.`)
 			logAndExit(err.Error())
 		}
 	case "list":
+		listArgs := os.Args[2:]
+		if len(listArgs) != 0 {
+			if checkForHelpAndPrintUsage(listArgs, listUsage()) {
+				os.Exit(0)
+			}
+		}
 		tasks, err := task.LoadTasks()
+		if err != nil {
+			logAndExit(err.Error())
+		}
+		tasks, err = task.FilterTasks(tasks, listArgs)
 		if err != nil {
 			logAndExit(err.Error())
 		}
@@ -232,4 +240,37 @@ where arg is one of the following:
   doing:  sets the status of the given tasks to Doing
   done:   sets the status of the given tasks to Done
 and t0 t1 ... denotes the optionnal list of tasks to mark with the given value`
+}
+
+// checks every element of args for equality with "-h", "--help" or "help" and
+// if one is found that equals one of the strings, prints usage to the log
+// and returns true
+func checkForHelpAndPrintUsage(args []string, usage string) bool {
+	for _, arg := range args {
+		if arg == "-h" || arg == "--help" || arg == "help" {
+			logger.Println(usage)
+			return true
+		}
+	}
+	return false
+}
+
+func listUsage() string {
+	return `Usage of list:
+  agen list [filter ...]
+where filter is one of the following:
+  status: todo, doing, done
+  priority: low, medium, high
+
+When several filters from the same category ("status" or "priority") are given,
+they form a union filter, meaning that tasks that satisfy one of the given
+filters could be listed (if not filtered out by the other category). If filters
+from different categories are given, they form an intersection filter, meaning
+that a task must have a status in the status filters and a priority in the
+priority filters.
+
+Examples:
+  - to list all done tasks: agen list done
+  - to list all done or todo tasks: agen list done todo
+  - to list all todo tasks that have priority high: agen list todo high`
 }
