@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
 )
 
 const (
@@ -426,4 +427,76 @@ func removeAt(path, name string) error {
 // Removes the task of given name
 func Remove(name string) error {
 	return removeAt(TasksPath, name)
+}
+
+// Parses the strings and returns the slice of status marks found, without
+// duplicates
+func ParseStatusFrom(strings []string) ([]byte, error) {
+	var res []byte
+	for _, str := range strings {
+		if IsValidStatus(str) {
+			stat, err := ParseStatus(str)
+			if err != nil {
+				return nil, err
+			}
+			if !slices.Contains(res, stat) {
+				res = append(res, stat)
+			}
+		}
+	}
+	return res, nil
+}
+
+// Parses the strings and returns the slice of priority marks found, without
+// duplicates
+func ParsePriorityFrom(strings []string) ([]byte, error) {
+	var res []byte
+	for _, str := range strings {
+		if IsValidPriority(str) {
+			prio, err := ParsePriority(str)
+			if err != nil {
+				return nil, err
+			}
+			if !slices.Contains(res, prio) {
+				res = append(res, prio)
+			}
+		}
+	}
+	return res, nil
+}
+
+// Returns true if status equals one of "todo", "doing" or "done"
+func IsValidStatus(status string) bool {
+	return status == "todo" || status == "doing" || status == "done"
+}
+
+// Returns true if priority equals one of "low", "medium" or "high"
+func IsValidPriority(priority string) bool {
+	return priority == "low" || priority == "medium" || priority == "high"
+}
+
+// Filters the given tasks and returns the remaining tasks
+func FilterTasks(tasks []*Task, filters []string) ([]*Task, error) {
+	sFilters, err := ParseStatusFrom(filters)
+	if err != nil {
+		return nil, err
+	}
+	pFilters, err := ParsePriorityFrom(filters)
+	if err != nil {
+		return nil, err
+	}
+	if len(sFilters) == 0 && len(pFilters) == 0 {
+		return tasks, nil
+	}
+	var res []*Task
+	for _, task := range tasks {
+		if len(sFilters) != 0 && !slices.Contains(sFilters, task.status) {
+			continue
+		}
+		if len(pFilters) != 0 && !slices.Contains(pFilters, task.priority) {
+			continue
+		}
+		res = append(res, task)
+	}
+	return res, nil
 }
