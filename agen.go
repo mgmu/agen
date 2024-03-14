@@ -159,20 +159,20 @@ func checkTasksDirOrExit() {
 }
 
 // Handle for status marking, the given status must be either "todo", "doing" or
-// "done", the string slice can be empty and contains the name of the tasks to
-// mark. Returns a non-nil error if the given task names were marked.
+// "done", the string slice can be empty and contains the uuids of part of it
+// of the tasks to mark. Returns a non-nil error if the given tasks were marked.
 func handleStatusMark(status string, args []string) error {
 	stat, err := task.ParseStatus(status)
 	if err != nil {
 		return err
 	}
-	for _, name := range args {
-		exists, err := task.Exists(name)
+	for _, uuid := range args {
+		exists, err := task.Exists(uuid)
 		if err != nil {
 			return err
 		}
 		if exists {
-			ts, err := task.LoadTask(name)
+			ts, err := task.LoadTask(uuid)
 			if err != nil {
 				return err
 			}
@@ -217,11 +217,11 @@ func handlePriorityMark(priority string, args []string) error {
 	return nil
 }
 
-// Removes the tasks denotes by the given names. If something wrong happens,
-// returns an error. The args slice can be empty
+// Removes the tasks denoted by the given uuids or part of it. If something
+// wrong happens, returns an error. The args slice can be empty.
 func handleRemove(args []string) error {
-	for _, name := range args {
-		if err := task.Remove(name); err != nil { // todo
+	for _, uuid := range args {
+		if err := task.Remove(uuid); err != nil {
 			return err
 		}
 	}
@@ -239,7 +239,8 @@ where arg is one of the following:
   todo:   sets the status of the given tasks to Todo
   doing:  sets the status of the given tasks to Doing
   done:   sets the status of the given tasks to Done
-and t0 t1 ... denotes the optionnal list of tasks to mark with the given value`
+and t0 t1 ... denotes the optionnal tasks uuids (or part of it) to mark with
+the given value`
 }
 
 // checks every element of args for equality with "-h", "--help" or "help" and

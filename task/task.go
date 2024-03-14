@@ -3,9 +3,11 @@ package task
 import (
 	"errors"
 	"fmt"
+	"github.com/google/uuid"
 	"os"
 	"path/filepath"
 	"slices"
+	"strings"
 )
 
 const (
@@ -39,6 +41,7 @@ type Task struct {
 	isPeriodic bool   // indicates if the task is periodic
 	priority   byte   // the priority of the task: Low(0), Medium(1), High(2)
 	status     byte   // the status of the task: Todo(3), Doing(4), Done(5)
+	uuid       string // the uuid of the task
 }
 
 func NewTask(title, desc string, isPeriodic bool, priority, status byte) (*Task,
@@ -61,6 +64,7 @@ func NewTask(title, desc string, isPeriodic bool, priority, status byte) (*Task,
 		isPeriodic: isPeriodic,
 		priority:   priority,
 		status:     status,
+		uuid:       uuid.NewString(),
 	}
 	return &new, nil
 }
@@ -73,6 +77,7 @@ func NewDefault(title string) (*Task, error) {
 		title:    title,
 		priority: Medium,
 		status:   Todo,
+		uuid:     uuid.NewString(),
 	}
 	return &new, nil
 }
@@ -104,6 +109,11 @@ func (t *Task) Status() int {
 	return int(t.status)
 }
 
+// Returns the UUID of the task.
+func (t *Task) Uuid() string {
+	return t.uuid
+}
+
 // Returns true if the given title is longer than the minimum title length
 func isTitleLongerThanMinLength(title string) bool {
 	return len(title) >= TitleMinLength
@@ -127,7 +137,7 @@ func checkTitleValidity(title string) error {
 }
 
 // Removes the first character of s if it is a slash '/'. If it is not, returns
-// s
+// s.
 func removeFirstSlashIfPresent(s string) string {
 	if s != "" && s[0] == '/' {
 		return s[1:]
@@ -143,7 +153,7 @@ func (t *Task) saveAt(path string) error {
 	if path[len(path)-1] != '/' {
 		path = path + "/"
 	}
-	path = path + t.Title()
+	path = path + t.uuid
 	offset := 0
 	data := make([]byte, t.Length())
 	titleLen := len(t.Title())
@@ -167,6 +177,11 @@ func (t *Task) saveAt(path string) error {
 	data[offset] = byte(t.Priority())
 	offset++
 	data[offset] = byte(t.Status())
+	offset++
+	uuidLen := len(t.uuid)
+	data[offset] = byte(uuidLen)
+	offset++
+	copy(data[offset:offset+uuidLen], t.uuid)
 	return os.WriteFile(filepath.Clean(path), data, 0644)
 }
 
@@ -176,13 +191,13 @@ func (t *Task) SaveOnDisk() error {
 	return t.saveAt(TasksPath)
 }
 
-// Returns the length in bytes needed to store this task
+// Returns the number of bytes needed to store this task.
 func (t *Task) Length() int {
-	return 1 + len(t.Title()) + 2 + len(t.Description()) + 3
+	return 1 + len(t.Title()) + 2 + len(t.Description()) + 4 + len(t.uuid)
 }
 
-// Loads into memory the task denoted by the given filepath and returns a
-// pointer to it.
+// Loads to memory the task denoted by the given filepath and returns a pointer
+// to it.
 func loadTaskFrom(path string) (*Task, error) {
 	if path == "" {
 		return nil, ErrInvalidLoadPath
@@ -211,26 +226,48 @@ func loadTaskFrom(path string) (*Task, error) {
 	if len(data) < 1 {
 		return nil, ErrInvalidTaskFileSize
 	}
-	titleLen := int(data[0])
-	if len(data) < 1+titleLen {
+	offset := 0
+	titleLen := int(data[offset])
+	offset++
+	if len(data) < offset+titleLen {
 		return nil, ErrInvalidTaskFileSize
 	}
-	title := string(data[1 : 1+titleLen])
-	if len(data) < 1+titleLen+2 {
+	title := string(data[offset : offset+titleLen])
+	offset += titleLen
+	if len(data) < offset+2 {
 		return nil, ErrInvalidTaskFileSize
 	}
-	descLen := uint16(data[1+titleLen])<<8 + uint16(data[1+titleLen+1])
-	if len(data) < 1+titleLen+2+int(descLen) {
+	descLen := uint16(data[offset])<<8 + uint16(data[offset+1])
+	offset += 2
+	if len(data) < offset+int(descLen) {
 		return nil, ErrInvalidTaskFileSize
 	}
-	desc := string(data[1+titleLen+2 : 1+titleLen+2+int(descLen)])
-	if len(data) < 1+titleLen+2+int(descLen)+3 {
+	desc := string(data[offset : offset+int(descLen)])
+	offset += int(descLen)
+	if len(data) < offset+3 {
 		return nil, ErrInvalidTaskFileSize
 	}
-	isPeriodic := (data[1+titleLen+2+int(descLen)] == 1)
-	priority := data[1+titleLen+2+int(descLen)+1]
-	status := data[1+titleLen+2+int(descLen)+2]
-	return NewTask(title, desc, isPeriodic, priority, status)
+	isPeriodic := (data[offset] == 1)
+	offset++
+	priority := data[offset]
+	offset++
+	status := data[offset]
+	offset++
+	if len(data) < offset+2 {
+		return nil, ErrInvalidTaskFileSize
+	}
+	uuidLen := int(data[offset])
+	offset++
+	if len(data) < offset+uuidLen {
+		return nil, ErrInvalidTaskFileSize
+	}
+	uuid := string(data[offset : offset+uuidLen])
+	newTask, err := NewTask(title, desc, isPeriodic, priority, status)
+	if err != nil {
+		return nil, err
+	}
+	newTask.uuid = uuid
+	return newTask, nil
 }
 
 // Loads into a slice of Task pointers the tasks saved at the given path
@@ -269,10 +306,10 @@ func LoadTasks() ([]*Task, error) {
 	return loadTasksFrom(TasksPath)
 }
 
-// Returns true if a task of given title already exists at the given directory
-// path.
-func existsAt(path, title string) (bool, error) {
-	if title == "" || path == "" {
+// Returns true if a task of given uuid of part of it already exists at the
+// given directory path.
+func existsAt(path, uuid string) (bool, error) {
+	if uuid == "" || path == "" {
 		return false, ErrInvalidLoadPath
 	}
 	dir, err := os.Open(path)
@@ -291,16 +328,16 @@ func existsAt(path, title string) (bool, error) {
 		return false, err
 	}
 	for _, entry := range entries {
-		if entry.Name() == title {
+		if strings.HasPrefix(entry.Name(), uuid) {
 			return true, nil
 		}
 	}
 	return false, nil
 }
 
-// Returns true if a task of given title already exists on disk
-func Exists(title string) (bool, error) {
-	return existsAt(TasksPath, title)
+// Returns true if a task of given uuid or part of it already exists on disk.
+func Exists(uuid string) (bool, error) {
+	return existsAt(TasksPath, uuid)
 }
 
 // Returns a string that displays the title, the status and the priority of this
@@ -324,7 +361,8 @@ func (t *Task) Display() string {
 	default:
 		statusDisp = "Done"
 	}
-	return fmt.Sprintf("[%s] %s <%s>", statusDisp, t.Title(), prioDisp)
+	return fmt.Sprintf("[%s] %s <%s> %s", statusDisp, t.Title(), prioDisp,
+		t.Uuid())
 }
 
 // Sets the description of this task to the given description. If the
@@ -391,10 +429,17 @@ func ParseStatus(status string) (byte, error) {
 	}
 }
 
-// Loads the task of given name. If the task does not exist or something happens
-// during the load, returns an error
-func LoadTask(name string) (*Task, error) {
-	return loadTaskFrom(filepath.Join(TasksPath, name))
+// Loads the task of given uuid or part of it. If the task does not exist or
+// something happens during the load, returns an error.
+func LoadTask(uuid string) (*Task, error) {
+	uuidLen := len(uuid)
+	if uuidLen == 0 || uuidLen > 36 {
+		return nil, errors.New("invalid uuid length")
+	}
+	if uuidLen < 36 {
+		return loadTaskFromPartialUuid(uuid)
+	}
+	return loadTaskFrom(filepath.Join(TasksPath, uuid))
 }
 
 // Parses the priority denoted by the given string. If priority is different
@@ -409,10 +454,11 @@ func ParsePriority(priority string) (byte, error) {
 		return High, nil
 	default:
 		return 0, errors.New("not a valid priority string")
-	}	
+	}
 }
 
-// Removes the file of given name at the given path
+// Removes the file of given name at the given path if it exists, otherwise
+// returns an error.
 func removeAt(path, name string) error {
 	exists, err := Exists(name)
 	if err != nil {
@@ -424,9 +470,32 @@ func removeAt(path, name string) error {
 	return nil
 }
 
-// Removes the task of given name
-func Remove(name string) error {
-	return removeAt(TasksPath, name)
+// Searchs for the full uuid if it is partial and removes the corresponding
+// task. If an error occurs, it returns the error.
+func removeFromPartialUuid(uuid string) error {
+	taskDir, err := os.ReadDir(TasksPath)
+	if err != nil {
+		return err
+	}
+	for _, entry := range taskDir {
+		filename := entry.Name()
+		if strings.HasPrefix(filename, uuid) {
+			return removeAt(TasksPath, filename)
+		}
+	}
+	return errors.New("task not found")
+}
+
+// Removes the task of given uuid or part of if.
+func Remove(uuid string) error {
+	uuidLen := len(uuid)
+	if uuidLen == 0 || uuidLen > 36 {
+		return errors.New("invalid uuid length")
+	}
+	if uuidLen < 36 {
+		return removeFromPartialUuid(uuid)
+	}
+	return removeAt(TasksPath, uuid)
 }
 
 // Parses the strings and returns the slice of status marks found, without
@@ -499,4 +568,19 @@ func FilterTasks(tasks []*Task, filters []string) ([]*Task, error) {
 		res = append(res, task)
 	}
 	return res, nil
+}
+
+func loadTaskFromPartialUuid(uuid string) (*Task, error) {
+	taskDir, err := os.ReadDir(TasksPath)
+	if err != nil {
+		return nil, err
+	}
+	for _, entry := range taskDir {
+		filename := entry.Name()
+		if strings.HasPrefix(filename, uuid) {
+			path := filepath.Join(TasksPath, filename)
+			return loadTaskFrom(path)
+		}
+	}
+	return nil, errors.New("task not found")
 }
