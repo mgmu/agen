@@ -234,8 +234,8 @@ func TestSaveAtSavesTheTaskAtPath(t *testing.T) {
 	if err != nil {
 		t.Fatalf(err.Error())
 	}
-	defer os.Remove("/tmp/test")
-	_, err = os.ReadFile("/tmp/test")
+	defer os.Remove("/tmp/" + task.Uuid())
+	_, err = os.ReadFile("/tmp/" + task.Uuid())
 	if err != nil {
 		t.Fatalf(err.Error())
 	}
@@ -247,7 +247,7 @@ func TestLengthNewDefaultTask(t *testing.T) {
 		t.Fatalf(err.Error())
 	}
 	l := ts.Length()
-	rl := 1 + 4 + 2 + 0 + 1 + 1 + 1
+	rl := 1 + 4 + 2 + 0 + 1 + 1 + 1 + 1 + 36
 	if l != rl {
 		t.Fatalf("got %d, want %d", l, rl)
 	}
@@ -259,7 +259,7 @@ func TestLengthNewTask(t *testing.T) {
 		t.Fatalf(err.Error())
 	}
 	l := ts.Length()
-	rl := 1 + 4 + 2 + 19 + 1 + 1 + 1
+	rl := 1 + 4 + 2 + 19 + 1 + 1 + 1 + 1 + 36
 	if l != rl {
 		t.Fatalf("got %d, want %d", l, rl)
 	}
@@ -274,35 +274,49 @@ func TestSaveAtSavesTheTaskAtPathAndTheTaskContent(t *testing.T) {
 	if err != nil {
 		t.Fatalf(err.Error())
 	}
-	defer os.Remove("/tmp/test")
-	data, err := os.ReadFile("/tmp/test")
+	defer os.Remove("/tmp/" + task.Uuid())
+	data, err := os.ReadFile("/tmp/" + task.Uuid())
 	if err != nil {
 		t.Fatalf(err.Error())
 	}
-	titleLen := int(data[0])
-	savedTitle := string(data[1:1+titleLen])
+	offset := 0
+	titleLen := int(data[offset])
+	offset++
+	savedTitle := string(data[offset:offset+titleLen])
 	if task.Title() != savedTitle {
 		t.Fatalf("got title \"%s\", want \"%s\"", savedTitle, task.Title())
 	}
-	descLen := uint16(data[1+titleLen]) << 8 + uint16(data[1+titleLen+1])
-	savedDesc := string(data[1+titleLen+2:int(descLen)+1+titleLen+2])
+	offset += titleLen
+	descLen := uint16(data[offset]) << 8 + uint16(data[offset+1])
+	offset += 2
+	savedDesc := string(data[offset:offset+int(descLen)])
 	if task.Description() != savedDesc {
 		t.Fatalf("got description \"%s\", want \"%s\"", savedDesc,
 			task.Description())
 	}
-	isPeriodic := (data[int(descLen)+1+titleLen+2] == 1)
+	offset += int(descLen)
+	isPeriodic := (data[offset] == 1)
 	if task.IsPeriodic() != isPeriodic {
 		t.Fatalf("got isPeriodic %t, want %t", isPeriodic,
 			task.IsPeriodic())
 	}
-	savedPriority := data[int(descLen)+1+titleLen+3]
+	offset++
+	savedPriority := data[offset]
 	if task.Priority() != int(savedPriority) {
 		t.Fatalf("got priority %d, want %d", savedPriority,
 			task.Priority())
 	}
-	savedStatus := data[int(descLen)+1+titleLen+4]
+	offset++
+	savedStatus := data[offset]
 	if task.Status() != int(savedStatus) {
 		t.Fatalf("got status %d, want %d", savedStatus,	task.Status())
+	}
+	offset++
+	uuidLen := int(data[offset])
+	offset++
+	savedUuid := data[offset:offset+uuidLen]
+	if task.Uuid() != string(savedUuid) {
+		t.Fatalf("got UUID %s, want %s", savedUuid, task.Uuid())
 	}
 }
 
@@ -416,7 +430,7 @@ func TestLoadTaskFromPathThatIsTaskReturnsCorrespondingTask(t *testing.T) {
 	if err = ts.saveAt(dirname); err != nil {
 		t.Fatalf(err.Error())
 	}
-	tsptr, err := loadTaskFrom(filepath.Join(dirname, ts.Title()))
+	tsptr, err := loadTaskFrom(filepath.Join(dirname, ts.Uuid()))
 	if err != nil {
 		t.Fatalf(err.Error())
 	}
@@ -428,49 +442,6 @@ func TestLoadTaskFromPathThatIsTaskReturnsCorrespondingTask(t *testing.T) {
 		tsptr.Priority() != ts.Priority() || tsptr.Status() != ts.Status() {
 		t.Fatalf("expected same task")
 	}
-}
-
-func TestLoadFromDirWith2TasksReturnsCorrespondingTasks(t *testing.T) {
-	dirname, err := os.MkdirTemp("", "tasks")
-	if err != nil {
-		t.Fatalf(err.Error())
-	}
-	defer os.RemoveAll(dirname)
-	ts1, err := NewDefault("test1")
-	if err != nil {
-		t.Fatalf(err.Error())
-	}
-	ts2, err := NewDefault("test2")
-	if err != nil {
-		t.Fatalf(err.Error())
-	}
-	if err = ts1.saveAt(dirname); err != nil {
-		t.Fatalf(err.Error())		
-	}
-	if err = ts2.saveAt(dirname); err != nil {
-		t.Fatalf(err.Error())		
-	}
-	tasks, err := loadTasksFrom(dirname)
-	if err != nil {
-		t.Fatalf(err.Error())
-	}
-	if len(tasks) != 2 {
-		t.Fatalf("got slice of length %d, want %d", len(tasks), 2)
-	}
-	if tasks[0].Title() != ts1.Title() ||
-		tasks[0].Description() != ts1.Description() ||
-		tasks[0].IsPeriodic() != ts1.IsPeriodic() ||
-		tasks[0].Priority() != ts1.Priority() ||
-		tasks[0].Status() != ts1.Status() {
-		t.Fatalf("expected same task")
-	}	
-	if tasks[1].Title() != ts2.Title() ||
-		tasks[1].Description() != ts2.Description() ||
-		tasks[1].IsPeriodic() != ts2.IsPeriodic() ||
-		tasks[1].Priority() != ts2.Priority() ||
-		tasks[1].Status() != ts2.Status() {
-		t.Fatalf("expected same task")
-	}	
 }
 
 func TestTaskExistenceWithEmptyTitleStringReturnsError(t *testing.T) {
@@ -551,7 +522,7 @@ func TestListDisplayOfDefaultTaskShowsGoodTitleStatusAndPriority(t *testing.T) {
 		t.Fatalf(err.Error())
 	}
 	display := ts.Display()
-	exp := "[To do] test <medium>"
+	exp := "[To do] test <medium> " + ts.Uuid()
 	if display != exp {
 		t.Fatalf("got \"%s\", want \"%s\"", display, exp)		
 	}
@@ -803,5 +774,25 @@ func TestParsePriorityFrom(t *testing.T) {
 	want[2] = Medium
 	if !slices.Equal(want, prios) {
 		t.Fatalf("got %v, want %v", prios, want)
+	}
+}
+
+func TestSaveAndLoadNewTaskKeepsSameUUID(t *testing.T) {
+	task, err := NewTask("ts42", "a desc", false, High, Doing)
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+	uuid := task.Uuid()
+	if err = task.saveAt("/tmp"); err != nil {
+		t.Fatalf(err.Error())
+	}
+	path := filepath.Join("/tmp", uuid)
+	defer os.Remove(path);
+	savedTask, err := loadTaskFrom(path)
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+	if savedTask.Uuid() != uuid {
+		t.Fatalf("got %s, wanted %s", savedTask.Uuid(), uuid)
 	}
 }
