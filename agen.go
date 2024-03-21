@@ -2,6 +2,7 @@ package main
 
 import (
 	"agen/task"
+	"errors"
 	"flag"
 	"fmt"
 	"log"
@@ -167,11 +168,11 @@ func handleStatusMark(status string, args []string) error {
 		return err
 	}
 	for _, uuid := range args {
-		exists, err := task.Exists(uuid)
+		existsAndUnique, err := task.ExistsAndIsUnique(uuid)
 		if err != nil {
 			return err
 		}
-		if exists {
+		if existsAndUnique {
 			ts, err := task.LoadTask(uuid)
 			if err != nil {
 				return err
@@ -182,6 +183,8 @@ func handleStatusMark(status string, args []string) error {
 			if err = ts.SaveOnDisk(); err != nil {
 				return err
 			}
+		} else {
+			return errors.New("uuid prefix not unique")
 		}
 	}
 	return nil
@@ -197,11 +200,11 @@ func handlePriorityMark(priority string, args []string) error {
 		return err
 	}
 	for _, name := range args {
-		exists, err := task.Exists(name)
+		existsAndUnique, err := task.ExistsAndIsUnique(name)
 		if err != nil {
 			return err
 		}
-		if exists {
+		if existsAndUnique {
 			ts, err := task.LoadTask(name)
 			if err != nil {
 				return err
@@ -211,8 +214,11 @@ func handlePriorityMark(priority string, args []string) error {
 			}
 			if err = ts.SaveOnDisk(); err != nil {
 				return err
-			}			
+			}
+		} else {
+			return errors.New("uuid prefix not unique")
 		}
+
 	}
 	return nil
 }
@@ -248,7 +254,7 @@ the given value`
 // and returns true
 func checkForHelpAndPrintUsage(args []string, usage string) bool {
 	for _, arg := range args {
-		if arg == "-h" || arg == "--help" || arg == "help" {
+		if arg == "-h" || arg == "--help" || arg == "help" || arg == "-help" {
 			logger.Println(usage)
 			return true
 		}

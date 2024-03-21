@@ -306,38 +306,63 @@ func LoadTasks() ([]*Task, error) {
 	return loadTasksFrom(TasksPath)
 }
 
-// Returns true if a task of given uuid of part of it already exists at the
-// given directory path.
-func existsAt(path, uuid string) (bool, error) {
-	if uuid == "" || path == "" {
-		return false, ErrInvalidLoadPath
+// Counts the number of files that have the given prefix at the given directory
+// path. Returns that number and a nil error or -1 and a non-nil error if an
+// error occured.
+func countFilesWithPrefixAt(path, prefix string) (int, error) {
+	error_int := -1
+	if prefix == "" || path == "" {
+		return error_int, ErrInvalidLoadPath
 	}
 	dir, err := os.Open(path)
 	if err != nil {
-		return false, err
+		return error_int, err
 	}
 	info, err := dir.Stat()
 	if err != nil {
-		return false, err
+		return error_int, err
 	}
 	if !info.IsDir() {
-		return false, ErrInvalidLoadPath
+		return error_int, ErrInvalidLoadPath
 	}
 	entries, err := dir.ReadDir(0)
 	if err != nil {
-		return false, err
+		return -1, err
 	}
+	count := 0
 	for _, entry := range entries {
-		if strings.HasPrefix(entry.Name(), uuid) {
-			return true, nil
+		if strings.HasPrefix(entry.Name(), prefix) {
+			count++
 		}
 	}
-	return false, nil
+	return count, nil
+}
+
+// Returns true if a task of given uuid of part of it already exists at the
+// given directory path. Note that if there are multiple files that start with
+// the given prefix, it returns also true but does not detect the fact that
+// there is more that one file with that prefix.
+func existsAt(path, uuid string) (bool, error) {
+	res, err := countFilesWithPrefixAt(path, uuid)
+	if err != nil {
+		return false, err
+	}
+	return res > 0, nil
 }
 
 // Returns true if a task of given uuid or part of it already exists on disk.
 func Exists(uuid string) (bool, error) {
 	return existsAt(TasksPath, uuid)
+}
+
+// Returns true if a task of given uuid or has given uuid as prefix exists and
+// that task is the only one that has the given uuid as a prefix.
+func ExistsAndIsUnique(uuid string) (bool, error) {
+	res, err := countFilesWithPrefixAt(TasksPath, uuid)
+	if err != nil {
+		return false, err
+	}
+	return res == 1, nil
 }
 
 // Returns a string that displays the title, the status and the priority of this
@@ -486,8 +511,16 @@ func removeFromPartialUuid(uuid string) error {
 	return errors.New("task not found")
 }
 
-// Removes the task of given uuid or part of if.
+// Removes the task of given uuid or part of if. If multiple tasks have the
+// given uuid as prefix, no tasks are removed and an error is returned.
 func Remove(uuid string) error {
+	existsAndUnique, err := ExistsAndIsUnique(uuid)
+	if err != nil {
+		return err
+	}
+	if !existsAndUnique {
+		return errors.New("uuid prefix not unique")
+	}
 	uuidLen := len(uuid)
 	if uuidLen == 0 || uuidLen > 36 {
 		return errors.New("invalid uuid length")
