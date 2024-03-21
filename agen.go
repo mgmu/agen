@@ -99,6 +99,9 @@ This is optionnal and defaults to Todo.`)
 		if len(os.Args) < 3 {
 			logAndExit("no specific mark given")
 		}
+		if checkForHelpAndPrintUsage(os.Args[2:], markUsage()) {
+			os.Exit(0)
+		}
 		switch os.Args[2] {
 		case "todo", "doing", "done":
 			if len(os.Args[2:]) < 2 {
@@ -116,14 +119,18 @@ This is optionnal and defaults to Todo.`)
 			}
 		default:
 			logger.Println("unkown mark: " + os.Args[2])
-			fmt.Println(markSubcommandUsage())
+			fmt.Println(markUsage())
 			os.Exit(1)
 		}
 	case "remove":
 		if len(os.Args) < 3 {
 			os.Exit(0)
 		}
-		if err := handleRemove(os.Args[2:]); err != nil {
+		removeArgs := os.Args[2:]
+		if checkForHelpAndPrintUsage(removeArgs, removeUsage()) {
+			os.Exit(0)
+		}
+		if err := handleRemove(removeArgs); err != nil {
 			logAndExit(err.Error())
 		}
 	default:
@@ -234,28 +241,13 @@ func handleRemove(args []string) error {
 	return nil
 }
 
-func markSubcommandUsage() string {
-	return `Usage of mark:
-  agen mark arg [t0 t1 ...]
-where arg is one of the following:
-  low:    sets the priority of the given tasks to Low
-  medium: sets the priority of the given tasks to Medium
-  high:   sets the priority of the given tasks to High
-
-  todo:   sets the status of the given tasks to Todo
-  doing:  sets the status of the given tasks to Doing
-  done:   sets the status of the given tasks to Done
-and t0 t1 ... denotes the optionnal tasks uuids (or part of it) to mark with
-the given value`
-}
-
 // checks every element of args for equality with "-h", "--help" or "help" and
 // if one is found that equals one of the strings, prints usage to the log
 // and returns true
 func checkForHelpAndPrintUsage(args []string, usage string) bool {
 	for _, arg := range args {
 		if arg == "-h" || arg == "--help" || arg == "help" || arg == "-help" {
-			logger.Println(usage)
+			fmt.Println(usage)
 			return true
 		}
 	}
@@ -280,4 +272,25 @@ Examples:
   - to list all done tasks: agen list done
   - to list all done or todo tasks: agen list done todo
   - to list all todo tasks that have priority high: agen list todo high`
+}
+
+func markUsage() string {
+	return `Usage of mark:
+  agen mark arg [t0 t1 ...]
+where arg is one of the following:
+  low:    sets the priority of the given tasks to Low
+  medium: sets the priority of the given tasks to Medium
+  high:   sets the priority of the given tasks to High
+
+  todo:   sets the status of the given tasks to Todo
+  doing:  sets the status of the given tasks to Doing
+  done:   sets the status of the given tasks to Done
+and t0 t1 ... denotes the optionnal tasks uuids (or part of it) to mark with
+the given value`
+}
+
+func removeUsage() string {
+	return `Usage of remove:
+  agen remove [t0 t1 ...]
+where [t0 t1 ...] denotes the optionnal tasks uuids (or part of it) to remove.`
 }
