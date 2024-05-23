@@ -33,7 +33,8 @@ This is optionnal and defaults to Medium.`)
 This is optionnal and defaults to Todo.`)
 
 	if len(os.Args) < 2 {
-		logAndExit("expected subcommand")
+		fmt.Print(agenUsage())
+		os.Exit(1)
 	}
 
 	switch os.Args[1] {
@@ -252,6 +253,14 @@ func checkForHelpAndPrintUsage(args []string, usage string) bool {
 		}
 	}
 	return false
+}
+
+func agenUsage() string {
+	return `Usage of agen:
+  agen newTask: create a new task
+  agen list: list tasks
+  agen mark: mark a task as done or as of high priority
+`
 }
 
 func listUsage() string {
