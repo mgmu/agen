@@ -34,8 +34,8 @@ type only the beginning of the identifiers, the programs looks for the task that
 has the corresponding identifier. If multiple tasks exists with the same
 identifier prefix, the modification is not applied, to none of the corresponding
 tasks in the list. For example, if you created a task and it has an identifier
-that starts with 3a and its the only task that starts with that prefix, you can
-change its priority to high with:  
+that starts with "3a" and its the only task that starts with that prefix, you
+can change its priority to high with:  
 `
 agen mark high 3a
 `
